@@ -198,23 +198,22 @@ public class TasksDataBaseConnection implements AutoCloseable {
     /**
      * add new DownloadTask to database
      * @param urls urls of new Download task
+     * @return id of new DownloadTask
      * @throws SQLException
      * */
-    public void addTask(URL[] urls) throws SQLException {
+    public int addTask(URL[] urls) throws SQLException {
         // add new task to Tasks table
         Statement statement = _connection.createStatement();
         statement.executeUpdate("INSERT INTO TASKS(SCHEDULED) VALUES (0);");
         _connection.commit();
 
         // get new task id
-        String id = Integer.toString(
-                statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id")
-        );
+        int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
 
         // add all urls to urls table, bind them with new task id
         for(URL url : urls) {
             statement.executeQuery(
-                    "INSERT INTO URLS(ID, URL) VALUES (" + id + "," +  url.toString() + ");"
+                    "INSERT INTO URLS(ID, URL) VALUES (" + Integer.toString(id) + "," +  url.toString() + ");"
             );
             _connection.commit();
         }
@@ -244,14 +243,12 @@ public class TasksDataBaseConnection implements AutoCloseable {
         _connection.commit();
 
         // get new task id
-        String id = Integer.toString(
-                statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id")
-        );
+        int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
 
         // add all urls to urls table, bind them with new task id
         for(URL url : urls) {
             statement.executeQuery(
-                    "INSERT INTO URLS(ID, URL) VALUES (" + id + "," +  url.toString() + ");"
+                    "INSERT INTO URLS(ID, URL) VALUES (" + Interger.toString(id) + "," +  url.toString() + ");"
             );
             _connection.commit();
         }
