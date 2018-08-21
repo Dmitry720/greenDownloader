@@ -3,6 +3,7 @@ package model;
 import java.net.URL;
 import java.util.Collection;
 import java.time.LocalDateTime;
+import java.nio.file.*;
 
 /*
 * Task container. Main content of TasksQueue, TasksDataBaseConnection and ect
@@ -10,24 +11,20 @@ import java.time.LocalDateTime;
 public class DownloadTask {
     private final int _id;
     private final URL[] _urls;
+    private final Path[] _paths;
     private final LocalDateTime _time;
     private final boolean _isScheduled;
-    private boolean _isDownloading = false;
     private double _downloadProgress = 0;
 
     public int getId() {return _id;}
 
     public URL[] getUrls() {return _urls;}
+    
+    public Path[] getPaths() {return _paths;}
 
     public LocalDateTime getTime() {return _time;}
 
     public boolean isScheduled() {return _isScheduled;}
-
-    public boolean isDownloading() {return _isDownloading;}
-
-    public void setIsDownloading(boolean value) {
-        _isDownloading = value;
-    }
 
     public double getDownloadingProgress() {return _downloadProgress;}
 
