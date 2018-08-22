@@ -6,14 +6,13 @@ import java.util.Queue;
  * A class that retrieves tasks from a specified queue and passes them to the addDownloadProcess method of the AsyncDownloder class
  */
 public class Watcher {
-/*
 	private Thread daemon;
 	private Queue<DownloadTask> queue;
 	private AsyncDownloder downloder;
 	
-	*//**
+	*
 	 * @param queue - the queue with tasks to perform
-	 *//*
+
 	public Watcher(Queue<DownloadTask> queue) {
 		this.queue = queue;
 		this.downloder = new AsyncDownloder();
@@ -41,5 +40,4 @@ public class Watcher {
 			}
 		}
 	}
-	*/
 }
