@@ -25,14 +25,9 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @throws SQLException
      * */
     public TasksDataBaseConnection() throws ClassNotFoundException, SQLException {
-        Class.forName("org.sqlite.JDBC");
-        _connection = DriverManager.getConnection(
-                "jdbc:sqlite:.." + File.separator
-                        + ".." + File.separator
-                        + "resources"
-                        + File.separator + "db.db"
+        this(
+                "jdbc:sqlite:resources" + File.separator + "db.db"
         );
-        _connection.setAutoCommit(false);
     }
 
     /**
@@ -45,6 +40,32 @@ public class TasksDataBaseConnection implements AutoCloseable {
         Class.forName("org.sqlite.JDBC");
         _connection = DriverManager.getConnection(url);
         _connection.setAutoCommit(false);
+
+        // init tables (for first time)
+        Statement statement = _connection.createStatement();
+        statement.executeUpdate(
+            "CREATE TABLE IF NOT EXISTS TASKS (\n" +
+                    "    ID          INTEGER UNIQUE\n" +
+                    "                        NOT NULL\n" +
+                    "                        DEFAULT (0) \n" +
+                    "                        PRIMARY KEY ASC AUTOINCREMENT\n" +
+                    "                        COLLATE BINARY,\n" +
+                    "    SCHEDULED   BOOLEAN DEFAULT (0),\n" +
+                    "    TIME        TEXT,\n" +
+                    "    DOWNLOADING BOOLEAN DEFAULT (0) \n" +
+                    ");\n"
+        );
+        statement.executeUpdate(
+          "CREATE TABLE IF NOT EXISTS URLS (\n" +
+                  "    ID   INTEGER UNIQUE\n" +
+                  "                 REFERENCES TASKS (ID) ON DELETE CASCADE\n" +
+                  "                                       ON UPDATE CASCADE\n" +
+                  "                                       MATCH SIMPLE,\n" +
+                  "    URL  TEXT,\n" +
+                  "    PATH TEXT    NOT NULL\n" +
+                  ");\n"
+        );
+        statement.close();
     }
 
     @Override
@@ -64,12 +85,14 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @throws SQLException
      * */
     public void setDownloading(int id, boolean value) throws SQLException {
-        Statement statement = _connection.createStatement();
-        statement.executeUpdate(
-                "UPDATE TASKS set DOWNLOADING = " + Boolean.toString(value)
-                        + " WHERE ID = " + Integer.toString(id) + ";"
+        PreparedStatement statement = _connection.prepareStatement(
+                "UPDATE TASKS SET DOWNLOADING = ? WHERE ID = ?;"
         );
+        statement.setInt(1, value? 1 : 0);
+        statement.setInt(2, id);
+        statement.executeUpdate();
         _connection.commit();
+        statement.close();
     }
 
     /**
@@ -80,12 +103,12 @@ public class TasksDataBaseConnection implements AutoCloseable {
     public boolean getDownloading(int id) throws SQLException {
         // get result set with needed result
         Statement statement = _connection.createStatement();
-        ResultSet resultSet = statement.executeQuery(
+        Boolean result = statement.executeQuery(
                 "SELECT DOWNLOADING FROM TASKS WHERE ID == " + Integer.toString(id) + ";"
-        );
+        ).getBoolean("DOWNLOADING");
         statement.close();
 
-        return resultSet.getBoolean("DOWNLOADING");
+        return result;
     }
 
     /**
@@ -98,32 +121,34 @@ public class TasksDataBaseConnection implements AutoCloseable {
         // execute sql query and get result (one node)
         Statement statement = _connection.createStatement();
         ResultSet resultSet = statement.executeQuery(
-                "SELECT SCHEDULED, TIME FROM TASKS WHERE ID == " + Integer.toString(id) + ";"
+                "SELECT SCHEDULED, TIME FROM TASKS WHERE ID = " + Integer.toString(id) + ";"
         );
-        statement.close();
 
         // return result or throw an exception "result doesn't exist"
         if(resultSet.next()) {
             // handle if task is scheduled
             if (resultSet.getBoolean("SCHEDULED"))
                 return new DownloadTask(
-                        id, getTaskUrls(id), getTaskPaths(id), parseTaskTime(resultSet.getString("TIME"))
+                        id,
+                        getTaskUrls(id),
+                        getTaskPaths(id),
+                        parseTaskTime(resultSet.getString("TIME"))
                 );
             else
                 return new DownloadTask(id, getTaskUrls(id), getTaskPaths(id));
         }
         else
-            throw new SQLDataException("Node with id = " + Integer.toString(id) + " doesn't exist");
+            throw new SQLDataException(
+                    "Node with id = " + Integer.toString(id) + " doesn't exist"
+            );
     }
 
     private LocalDateTime parseTaskTime(String time) {
         // make an array of LocalDateTime args
         int[] dateTimeArray = new int[6];
-        int counter = 0;
-        for (String dateNumberString : time.split(",")) {
-            dateTimeArray[counter] = Integer.getInteger(dateNumberString);
-            counter++;
-        }
+        String[] timeStrings = time.split(",");
+        for (int counter = 0; counter < 6; counter++)
+            dateTimeArray[counter] = Integer.valueOf(timeStrings[counter]);
 
         return LocalDateTime.of(
                 dateTimeArray[0], dateTimeArray[1], dateTimeArray[2],
@@ -144,14 +169,14 @@ public class TasksDataBaseConnection implements AutoCloseable {
                 "SELECT URL FROM URLS WHERE ID == " + Integer.toString(id) + ";"
         );
 
-        statement.close();
-
         // fill an urls array
         int counter = 0;
         while (urlsSet.next()) {
             urlsArray[counter] = new URL(urlsSet.getString("URL"));
             counter++;
         }
+
+        statement.close();
 
         return urlsArray;
     }
@@ -169,14 +194,14 @@ public class TasksDataBaseConnection implements AutoCloseable {
                 "SELECT PATH FROM URLS WHERE ID == " + Integer.toString(id) + ";"
         );
 
-        statement.close();
-
         // fill an urls array
         int counter = 0;
         while (pathsSet.next()) {
             pathsArray[counter] = Paths.get(pathsSet.getString("PATH"));
             counter++;
         }
+
+        statement.close();
 
         return pathsArray;
     }
@@ -199,17 +224,20 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @return min time of planned tasks | null if time doesn't exist
      * @throws SQLException
      */
-    public LocalDateTime minTime() throws SQLException {
+    public synchronized LocalDateTime minTime() throws SQLException {
         // get min time string of scheduled task
-        Statement statement = _connection.createStatement();
-        ResultSet minTimeSet = statement.executeQuery(
-                "SELECT MIN(TIME) as minTime FROM TASKS WHERE SCHEDULED = TRUE AND DOWNLOADING = FALSE"
+        PreparedStatement statement = _connection.prepareStatement(
+                "SELECT MIN(TIME) as minTime FROM TASKS WHERE SCHEDULED = ? AND DOWNLOADING = ?"
         );
-        statement.close();
+        statement.setInt(1, 1);
+        statement.setInt(2, 0);
+        ResultSet minTimeSet = statement.executeQuery();
 
         // convert min time string to LocalDateTime, if scheduled tasks exist
-        if(minTimeSet.next())
-            return parseTaskTime(minTimeSet.getString("minTime"));
+        if(minTimeSet.next()) {
+            String timeString = minTimeSet.getString("minTime");
+            return timeString != null? parseTaskTime(timeString) : null;
+        }
         else
             return null;
     }
@@ -220,13 +248,14 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @throws MalformedURLException
      * */
     public DownloadTask peekPlannedTask() throws SQLException, MalformedURLException {
-        Statement statement = _connection.createStatement();
-        ResultSet idOfPlannedTask = statement.executeQuery(
+        PreparedStatement statement = _connection.prepareStatement(
                 "SELECT ID FROM TASKS WHERE" +
                         " TIME = (SELECT MIN(TIME) FROM TASKS" +
-                        " WHERE SCHEDULED = TRUE AND DOWNLOADING = FALSE)"
+                        " WHERE SCHEDULED = ? AND DOWNLOADING = ?)"
         );
-        statement.close();
+        statement.setInt(1, 1);
+        statement.setInt(2, 0);
+        ResultSet idOfPlannedTask = statement.executeQuery();
 
         if(idOfPlannedTask.next())
             return peekTask(idOfPlannedTask.getInt("ID"));
@@ -251,23 +280,33 @@ public class TasksDataBaseConnection implements AutoCloseable {
             );
 
         // add new task to Tasks table
-        Statement statement = _connection.createStatement();
-        statement.executeUpdate("INSERT INTO TASKS(SCHEDULED, DOWNLOADING) VALUES (0, 0);");
+        PreparedStatement preparedStatement = _connection.prepareStatement(
+                "INSERT INTO TASKS(SCHEDULED, DOWNLOADING) VALUES (?, ?);"
+        );
+        preparedStatement.setInt(1, 0);
+        preparedStatement.setInt(2, 0);
+        preparedStatement.executeUpdate();
         _connection.commit();
+        preparedStatement.close();
 
         // get new task id
-        int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
+        Statement statement = _connection.createStatement();
+        int id = statement.executeQuery(
+                "SELECT id FROM TASKS WHERE rowid=last_insert_rowid()"
+        ).getInt("id");
 
         // add all urls with path to urls table, bind them with new task id
         for (int index = 0; index < urls.length; index++) {
-            statement.executeUpdate(
-                "INSERT INTO URLS(ID, URL, PATH) VALUES (" + Integer.toString(id) + ", " +
-                        urls[index].toString() + ", " + paths[index].toString() + ");"
+            preparedStatement = _connection.prepareStatement(
+                    "INSERT  INTO  URLS(ID, URL, PATH) VALUES (?, ?, ?);"
             );
+            preparedStatement.setInt(1, id);
+            preparedStatement.setString(2, urls[index].toString());
+            preparedStatement.setString(3, paths[index].toString());
+            preparedStatement.executeUpdate();
+            preparedStatement.close();
             _connection.commit();
         }
-
-        statement.close();
 
         return id;
     }
@@ -278,13 +317,13 @@ public class TasksDataBaseConnection implements AutoCloseable {
                 + Integer.toString(time.getDayOfMonth()) + ","
                 + Integer.toString(time.getHour()) + ","
                 + Integer.toString(time.getMinute()) + ","
-                + Integer.toString(time.getSecond()) + ",";
+                + Integer.toString(time.getSecond());
     }
 
     /**
      * add new scheduled DownloadTask to database
      * @param urls urls of new Download task
-     * @param paths paths of downloded files
+     * @param paths paths of downloaded files
      * @param time time in schedule
      * @return id of newPlannedTask
      * @throws SQLException
@@ -294,30 +333,38 @@ public class TasksDataBaseConnection implements AutoCloseable {
         // handle case if urls and paths lengths aren't equal
         if (urls.length != paths.length)
             throw new IllegalArgumentException(
-                    "urls and files lenghts aren't equal (" + Integer.toString(urls.length)
+                    "urls and files lengths aren't equal (" + Integer.toString(urls.length)
                             + " and " + Integer.toString(paths.length) + ")"
             );
 
         // add new planned task to Tasks table
-        Statement statement = _connection.createStatement();
-        statement.executeUpdate(
-                "INSERT INTO TASKS(SCHEDULED, TIME, DOWNLOADING) VALUES (1, " + timeString(time) + ", 0);"
+        PreparedStatement statement = _connection.prepareStatement(
+                "INSERT  INTO TASKS (SCHEDULED, TIME, DOWNLOADING) VALUES (?, ?, ?);"
         );
+        statement.setInt(1, 1);
+        statement.setString(2, timeString(time));
+        statement.setInt(3, 0);
+        statement.executeUpdate();
+        statement.close();
         _connection.commit();
 
         // get new task id
-        int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
+        int id = _connection.createStatement().executeQuery(
+                "SELECT ID FROM TASKS WHERE rowid = last_insert_rowid()"
+        ).getInt("ID");
 
         // add all urls with path to urls table, bind them with new task id
         for (int index = 0; index < urls.length; index++) {
-            statement.executeUpdate(
-                "INSERT INTO URLS(ID, URL, PATH) VALUES (" + Integer.toString(id) + ", " +
-                        urls[index].toString() + ", " + paths[index].toString() + ");"
+            statement = _connection.prepareStatement(
+                "INSERT INTO URLS(ID, URL, PATH) VALUES (?, ?, ?);"
             );
+            statement.setInt(1, id);
+            statement.setString(2, urls[index].toString());
+            statement.setString(3, paths[index].toString());
+            statement.executeUpdate();
+            statement.close();
             _connection.commit();
         }
-
-        statement.close();
 
         return id;
     }
