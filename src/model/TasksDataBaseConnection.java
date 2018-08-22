@@ -216,6 +216,9 @@ public class TasksDataBaseConnection implements AutoCloseable {
         statement.executeUpdate(
                 "DELETE from TASKS WHERE ID = " + Integer.toString(id) + ";"
         );
+        statement.executeUpdate(
+                "DELETE FROM URLS WHERE ID = "  + Integer.toString(id) + ";"
+        );
         _connection.commit();
         statement.close();
     }
