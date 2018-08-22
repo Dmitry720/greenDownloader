@@ -39,10 +39,10 @@ public class AsyncDownloder {
 		} catch (MalformedURLException e) {
 			e.printStackTrace();
 		}
-		
+
 		DownloadTask task = new DownloadTask(0, urls);
 		task.setFilePath("C:\\Users\\DELL\\Desktop\\file.cdr");
-		
+
 		AsyncDownloder ad = new AsyncDownloder();
 		ad.addDownloadProcess(task);
 		ad.addDownloadProcess(task);

@@ -14,12 +14,10 @@ import java.nio.file.*;
  * (wraps java.sql.Connection)
  * @author L1ttl3S1st3r
  * @version 1.0
- * 
- * 
- * @// TODO: 16.08.2018 update documentation, refactor, test 
+ *
  * */
 public class TasksDataBaseConnection implements AutoCloseable {
-    private final Connection _connection;
+    private Connection _connection;
 
     /**
      * Default constructor. Uses default database url
@@ -27,11 +25,14 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @throws SQLException
      * */
     public TasksDataBaseConnection() throws ClassNotFoundException, SQLException {
-        this("jdbc:sqlite:.." + File.separator
-                + ".." + File.separator
-                + "resourses"
-                + File.separator + "db.db"
+        Class.forName("org.sqlite.JDBC");
+        _connection = DriverManager.getConnection(
+                "jdbc:sqlite:.." + File.separator
+                        + ".." + File.separator
+                        + "resources"
+                        + File.separator + "db.db"
         );
+        _connection.setAutoCommit(false);
     }
 
     /**
@@ -62,8 +63,8 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @param value new downloading status
      * @throws SQLException
      * */
-    public setDownloading(int id, boolean value) throws SQLException {
-        Statement statement = _connetion.createStatement();
+    public void setDownloading(int id, boolean value) throws SQLException {
+        Statement statement = _connection.createStatement();
         statement.executeUpdate(
                 "UPDATE TASKS set DOWNLOADING = " + Boolean.toString(value)
                         + " WHERE ID = " + Integer.toString(id) + ";"
@@ -76,7 +77,7 @@ public class TasksDataBaseConnection implements AutoCloseable {
      * @param id
      * @throws SQLException
      * */
-    public getDownloading(int id) {
+    public boolean getDownloading(int id) throws SQLException {
         // get result set with needed result
         Statement statement = _connection.createStatement();
         ResultSet resultSet = statement.executeQuery(
@@ -161,7 +162,7 @@ public class TasksDataBaseConnection implements AutoCloseable {
         ResultSet urlsCount = statement.executeQuery(
                 "SELECT COUNT(*) as count FROM URLS WHERE ID == " + Integer.toString(id) + ";"
         );
-        Path[] pahtsArray = new Path[urlsCount.getInt("count")];
+        Path[] pathsArray = new Path[urlsCount.getInt("count")];
 
         // get set of paths associated with the id
         ResultSet pathsSet = statement.executeQuery(
@@ -173,11 +174,11 @@ public class TasksDataBaseConnection implements AutoCloseable {
         // fill an urls array
         int counter = 0;
         while (pathsSet.next()) {
-            pathsArray[counter] = new Paths.get(pathsSet.getString("PATH"));
+            pathsArray[counter] = Paths.get(pathsSet.getString("PATH"));
             counter++;
         }
 
-        return urlsArray;
+        return pathsArray;
     }
 
     /**
@@ -258,11 +259,11 @@ public class TasksDataBaseConnection implements AutoCloseable {
         int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
 
         // add all urls with path to urls table, bind them with new task id
-        for (int index; index < urls.length; index++) {
-            statement.executeQuery {
+        for (int index = 0; index < urls.length; index++) {
+            statement.executeUpdate(
                 "INSERT INTO URLS(ID, URL, PATH) VALUES (" + Integer.toString(id) + ", " +
                         urls[index].toString() + ", " + paths[index].toString() + ");"
-            };
+            );
             _connection.commit();
         }
 
@@ -308,11 +309,11 @@ public class TasksDataBaseConnection implements AutoCloseable {
         int id = statement.executeQuery("SELECT last_insert_rowid() as id").getInt("id");
 
         // add all urls with path to urls table, bind them with new task id
-        for (int index; index < urls.length; index++) {
-            statement.executeQuery {
+        for (int index = 0; index < urls.length; index++) {
+            statement.executeUpdate(
                 "INSERT INTO URLS(ID, URL, PATH) VALUES (" + Integer.toString(id) + ", " +
                         urls[index].toString() + ", " + paths[index].toString() + ");"
-            };
+            );
             _connection.commit();
         }
 
