@@ -32,11 +32,11 @@ public class Watcher {
 				}
 			}
 			catch (InterruptedException e) {
-				System.out.println("Демону мешают спать!");
+				System.out.println("Г„ГҐГ¬Г®Г­Гі Г¬ГҐГёГ ГѕГІ Г±ГЇГ ГІГј!");
 				e.printStackTrace();
 			}
 			catch (Exception e) {
-				System.out.println("Что-то пошло не так");
+				System.out.println("Г—ГІГ®-ГІГ® ГЇГ®ГёГ«Г® Г­ГҐ ГІГ ГЄ");
 				e.printStackTrace();
 			}
 		}

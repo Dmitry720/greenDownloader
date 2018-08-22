@@ -23,7 +23,7 @@ import java.util.concurrent.*;
 public class AsyncDownloder {
 	
 	private ExecutorService downloadThreadPool;
-	//TODO проверить корректность размера
+	//TODO ГЇГ°Г®ГўГҐГ°ГЁГІГј ГЄГ®Г°Г°ГҐГЄГІГ­Г®Г±ГІГј Г°Г Г§Г¬ГҐГ°Г 
 	private Map<Integer, List<Future<?>>> downloadTaskList;
 	
 	AsyncDownloder() {
@@ -68,7 +68,7 @@ public class AsyncDownloder {
 		}
 		catch (NullPointerException e) {
 			//TODO
-			System.out.println("в таске где-то нули");
+			System.out.println("Гў ГІГ Г±ГЄГҐ ГЈГ¤ГҐ-ГІГ® Г­ГіГ«ГЁ");
 			//
 			e.printStackTrace();
 		}
@@ -80,7 +80,7 @@ public class AsyncDownloder {
 	 * @param id - id of download to be canceled
 	 * @throws NullPointerException
 	 */
-	//TODO закончить тесты
+	//TODO Г§Г ГЄГ®Г­Г·ГЁГІГј ГІГҐГ±ГІГ»
 	public void cancelFileDownload(int id) throws NullPointerException {
 		int index = 0;
 		for(Future<?> future : downloadTaskList.get(id)) {
@@ -89,7 +89,7 @@ public class AsyncDownloder {
 		}
 	}
 	
-	//TODO разобраться с прыжком к finally
+	//TODO Г°Г Г§Г®ГЎГ°Г ГІГјГ±Гї Г± ГЇГ°Г»Г¦ГЄГ®Г¬ ГЄ finally
 	private void startFileDownload(DownloadTask task, int index) {
 		boolean fileDeleteFlag = false;
 		BufferedInputStream bis = null;
@@ -112,13 +112,13 @@ public class AsyncDownloder {
         }
         catch(FileNotFoundException e) {
         	//TODO
-        	System.out.println("файл не может быть создан");
+        	System.out.println("ГґГ Г©Г« Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј Г±Г®Г§Г¤Г Г­");
         	//
         	e.printStackTrace();
         }
         catch(IOException e) {      	
         	//TODO
-        	System.out.println("проблема с соединением");
+        	System.out.println("ГЇГ°Г®ГЎГ«ГҐГ¬Г  Г± Г±Г®ГҐГ¤ГЁГ­ГҐГ­ГЁГҐГ¬");
         	//
         	if(fileDeleteFlag)
         		deleteFile(task.getFilePath());
@@ -127,7 +127,7 @@ public class AsyncDownloder {
         finally {
         	
         	//TODO
-        	System.out.println("загрузка завершена");
+        	System.out.println("Г§Г ГЈГ°ГіГ§ГЄГ  Г§Г ГўГҐГ°ГёГҐГ­Г ");
         	//
         	
         	//TODO
@@ -149,12 +149,12 @@ public class AsyncDownloder {
 		}
 		catch(IOException e) {
 			//TODO
-			System.out.println("файл не может быть удалён");
+			System.out.println("ГґГ Г©Г« Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГіГ¤Г Г«ВёГ­");
 			//
 		}
 	}
 	
-	//TODO подумать над оптимизацией
+	//TODO ГЇГ®Г¤ГіГ¬Г ГІГј Г­Г Г¤ Г®ГЇГІГЁГ¬ГЁГ§Г Г¶ГЁГҐГ©
 	private void deleteTask(int id, int index) {
 		List<Future<?>> taskList = downloadTaskList.get(id); 
 		taskList.remove(index);
@@ -172,7 +172,7 @@ public class AsyncDownloder {
 			}
 			System.out.println("*");
 		} catch (InterruptedException e) {
-			System.out.println("нагрузка паламалася");
+			System.out.println("Г­Г ГЈГ°ГіГ§ГЄГ  ГЇГ Г«Г Г¬Г Г«Г Г±Гї");
 		}
 	}
 	//
