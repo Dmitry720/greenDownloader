@@ -28,7 +28,7 @@ public class DownloadTask {
 
     public double getDownloadingProgress() {return _downloadProgress;}
 
-    public void setdownloadProgress(double value) throws IllegalArgumentException {
+    public void setDownloadingProgress(double value) throws IllegalArgumentException {
         if (value > 100 || value < 0)
             throw  new IllegalArgumentException("Expected value in range (0, 100), got " + Double.toString(value));
 
@@ -38,10 +38,12 @@ public class DownloadTask {
 
     /**
      * @param id unique id for task
-     * @param urls array of urls, which will be downloaded **/
-    public DownloadTask(int id, URL[] urls) {
+     * @param urls array of urls of files, which will be downloaded
+     * @param paths array of paths of files**/
+    public DownloadTask(int id, URL[] urls, Path[] paths) {
         _id = id;
         _urls = urls;
+        _paths = paths;
         _time = null;
         _isScheduled = false;
     }
@@ -49,10 +51,12 @@ public class DownloadTask {
     /**
      * @param id unique id for task
      * @param urls array of urls, which will be downloaded
+     * @param paths array of paths of files
      * @param time the time for which the task was scheduled**/
-    public DownloadTask(int id, URL[] urls, LocalDateTime time) {
+    public DownloadTask(int id, URL[] urls, Path[] paths, LocalDateTime time) {
         _id = id;
         _urls = urls;
+        _paths = paths;
         _time = time;
         _isScheduled = true;
     }
