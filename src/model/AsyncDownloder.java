@@ -48,10 +48,10 @@ public class AsyncDownloder {
 		ad.test(task, null);
 	}
 	
-	*
+	/*
 	 * Begins the asynchronous downloading of files (each in its own thread) according to the specified URL array.
 	 * 
-	 * @param task - container containing download parameters
+	 * @param task - container containing download parameters */
 
 	public void addDownloadProcess(DownloadTask task) {
 		List<Future<?>> downloadFileList;
@@ -73,11 +73,11 @@ public class AsyncDownloder {
 		}
 	}
 	
-	*
+	/*
 	 * cancels the download for a given id
 	 * 
 	 * @param id - id of download to be canceled
-	 * @throws NullPointerException
+	 * @throws NullPointerException */
 
 	//TODO çàêîí÷èòü òåñòû
 	public void cancelFileDownload(int id) throws NullPointerException {

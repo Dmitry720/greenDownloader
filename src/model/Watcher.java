@@ -10,8 +10,8 @@ public class Watcher {
 	private Queue<DownloadTask> queue;
 	private AsyncDownloder downloder;
 	
-	*
-	 * @param queue - the queue with tasks to perform
+	/*
+	 * @param queue - the queue with tasks to perform */
 
 	public Watcher(Queue<DownloadTask> queue) {
 		this.queue = queue;
