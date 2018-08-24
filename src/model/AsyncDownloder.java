@@ -4,12 +4,14 @@ import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -21,38 +23,28 @@ import java.util.concurrent.*;
  * Class for asynchronous downloading of files.
  */
 public class AsyncDownloder {
+	
+	private TasksDataBaseConnection dataBase;
 	private ExecutorService downloadThreadPool;
-	//TODO ГЇГ°Г®ГўГҐГ°ГЁГІГј ГЄГ®Г°Г°ГҐГЄГІГ­Г®Г±ГІГј Г°Г Г§Г¬ГҐГ°Г 
 	private Map<Integer, List<Future<?>>> downloadTaskList;
 	
 	AsyncDownloder() {
+		// TODO написать статический метод во VM для получения БД 
 		downloadThreadPool = Executors.newCachedThreadPool();
 		downloadTaskList = new ConcurrentHashMap<>();
 	}
 	
 	public static void main(String[] args) {
 		
-		URL[] urls = new URL[2];
-		try {
-			urls[0] = new URL("https://vk.com/doc264626650_470445692?hash=db7a63f4842c5b3503&dl=9ce2cdc17956063655");
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-
-		DownloadTask task = new DownloadTask(0, urls);
-		task.setFilePath("C:\\Users\\DELL\\Desktop\\file.cdr");
-
-		AsyncDownloder ad = new AsyncDownloder();
-		ad.addDownloadProcess(task);
-		ad.addDownloadProcess(task);
-		ad.test(task, null);
+		
+		
 	}
 	
-	/*
+	/**
 	 * Begins the asynchronous downloading of files (each in its own thread) according to the specified URL array.
 	 * 
-	 * @param task - container containing download parameters */
-
+	 * @param task - container containing download parameters
+	 */
 	public void addDownloadProcess(DownloadTask task) {
 		List<Future<?>> downloadFileList;
 		try {
@@ -63,23 +55,26 @@ public class AsyncDownloder {
 				Future<?> future = downloadThreadPool.submit(() -> {this.startFileDownload(task, index);});
 				downloadFileList.add(future);
 			}
-			task.setIsDownloading(true);
+			dataBase.setDownloading(task.getId(), true);
 		}
 		catch (NullPointerException e) {
 			//TODO
-			System.out.println("Гў ГІГ Г±ГЄГҐ ГЈГ¤ГҐ-ГІГ® Г­ГіГ«ГЁ");
+			System.out.println("в таске где-то нули");
 			//
 			e.printStackTrace();
 		}
+		catch (SQLException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
 	}
 	
-	/*
+	/**
 	 * cancels the download for a given id
 	 * 
 	 * @param id - id of download to be canceled
-	 * @throws NullPointerException */
-
-	//TODO Г§Г ГЄГ®Г­Г·ГЁГІГј ГІГҐГ±ГІГ»
+	 * @throws NullPointerException
+	 */
 	public void cancelFileDownload(int id) throws NullPointerException {
 		int index = 0;
 		for(Future<?> future : downloadTaskList.get(id)) {
@@ -88,22 +83,20 @@ public class AsyncDownloder {
 		}
 	}
 	
-	//TODO Г°Г Г§Г®ГЎГ°Г ГІГјГ±Гї Г± ГЇГ°Г»Г¦ГЄГ®Г¬ ГЄ finally
 	private void startFileDownload(DownloadTask task, int index) {
 		boolean fileDeleteFlag = false;
 		BufferedInputStream bis = null;
-		FileOutputStream file = null;
+		OutputStream file = null;
         try {
 
         	bis = new BufferedInputStream(task.getUrls()[index].openStream());
-        	file = new FileOutputStream(task.getFilePath());
+        	file = Files.newOutputStream(task.getPaths()[index]);
         	
         	byte[] buffer = new byte[1024];
         	int count = 0;
         	
         	while((count = bis.read(buffer, 0, 1024)) != -1)
         	{
-        		task.setdownloadProgress(task.getDownloadingProgress() + count);
         		file.write(buffer, 0, count);
         		fileDeleteFlag = true;
         	}
@@ -111,22 +104,22 @@ public class AsyncDownloder {
         }
         catch(FileNotFoundException e) {
         	//TODO
-        	System.out.println("ГґГ Г©Г« Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј Г±Г®Г§Г¤Г Г­");
+        	System.out.println("файл не может быть создан");
         	//
         	e.printStackTrace();
         }
         catch(IOException e) {      	
         	//TODO
-        	System.out.println("ГЇГ°Г®ГЎГ«ГҐГ¬Г  Г± Г±Г®ГҐГ¤ГЁГ­ГҐГ­ГЁГҐГ¬");
+        	System.out.println("проблема с соединением");
         	//
         	if(fileDeleteFlag)
-        		deleteFile(task.getFilePath());
+        		deleteFile(task.getPaths()[index]);
         	e.printStackTrace();
         }
         finally {
         	
         	//TODO
-        	System.out.println("Г§Г ГЈГ°ГіГ§ГЄГ  Г§Г ГўГҐГ°ГёГҐГ­Г ");
+        	System.out.println("загрузка завершена");
         	//
         	
         	//TODO
@@ -139,21 +132,20 @@ public class AsyncDownloder {
         }
 	}
 
-	private void deleteFile(String fileName) {
+	private void deleteFile(Path path) {
 		try { 
-			Path path = Paths.get(fileName);
 			Files.delete(path);
 		} 
 		catch(InvalidPathException e) {
 		}
 		catch(IOException e) {
 			//TODO
-			System.out.println("ГґГ Г©Г« Г­ГҐ Г¬Г®Г¦ГҐГІ ГЎГ»ГІГј ГіГ¤Г Г«ВёГ­");
+			System.out.println("файл не может быть удалён");
 			//
 		}
 	}
 	
-	//TODO ГЇГ®Г¤ГіГ¬Г ГІГј Г­Г Г¤ Г®ГЇГІГЁГ¬ГЁГ§Г Г¶ГЁГҐГ©
+	//TODO подумать над оптимизацией
 	private void deleteTask(int id, int index) {
 		List<Future<?>> taskList = downloadTaskList.get(id); 
 		taskList.remove(index);
@@ -171,8 +163,9 @@ public class AsyncDownloder {
 			}
 			System.out.println("*");
 		} catch (InterruptedException e) {
-			System.out.println("Г­Г ГЈГ°ГіГ§ГЄГ  ГЇГ Г«Г Г¬Г Г«Г Г±Гї");
+			System.out.println("нагрузка паламалася");
 		}
 	}
 	//
+	
 }

@@ -6,13 +6,17 @@ import java.util.Queue;
  * A class that retrieves tasks from a specified queue and passes them to the addDownloadProcess method of the AsyncDownloder class
  */
 public class Watcher {
+
 	private Thread daemon;
 	private Queue<DownloadTask> queue;
 	private AsyncDownloder downloder;
 	
-	/*
-	 * @param queue - the queue with tasks to perform */
-
+	// TODO
+	public AsyncDownloder getDownloder() {return downloder;}
+	
+	/**
+	 * @param queue - the queue with tasks to perform
+	 */
 	public Watcher(Queue<DownloadTask> queue) {
 		this.queue = queue;
 		this.downloder = new AsyncDownloder();
@@ -31,13 +35,18 @@ public class Watcher {
 				}
 			}
 			catch (InterruptedException e) {
-				System.out.println("Г„ГҐГ¬Г®Г­Гі Г¬ГҐГёГ ГѕГІ Г±ГЇГ ГІГј!");
+				// TODO
+				System.out.println("Демону мешают спать!");
+				//
 				e.printStackTrace();
 			}
 			catch (Exception e) {
-				System.out.println("Г—ГІГ®-ГІГ® ГЇГ®ГёГ«Г® Г­ГҐ ГІГ ГЄ");
+				// TODO
+				System.out.println("Что-то пошло не так");
+				//
 				e.printStackTrace();
 			}
 		}
 	}
+	
 }
