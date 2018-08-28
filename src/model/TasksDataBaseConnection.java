@@ -57,7 +57,7 @@ public class TasksDataBaseConnection implements AutoCloseable {
         );
         statement.executeUpdate(
           "CREATE TABLE IF NOT EXISTS URLS (\n" +
-                  "    ID   INTEGER UNIQUE\n" +
+                  "    ID   INTEGER \n" +
                   "                 REFERENCES TASKS (ID) ON DELETE CASCADE\n" +
                   "                                       ON UPDATE CASCADE\n" +
                   "                                       MATCH SIMPLE,\n" +
